@@ -1,0 +1,9 @@
+/A2/generator/NToBeTracked 5
+/A2/generator/Track 2  # Proton [14]
+#/A2/generator/Track 3  # Eta [17]
+/A2/generator/Track 4  # Pi+ [8]
+/A2/generator/Track 5  # Pi- [9]
+#/A2/generator/Track 6  # Pi0 [7]
+/A2/generator/Track 7  # Photon [1]
+/A2/generator/Track 8  # Photon [1]
+

@@ -1,0 +1,8 @@
+# Byte-compiled / optimized
+__pycache__/
+*$py.class
+
+sim.C
+*.log
+
+*.swp

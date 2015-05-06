@@ -1,0 +1,35 @@
+#
+# Macro file for the initialization phase of my automated simulation procedure
+#####Pre-Initialisation
+#Choose a physics list, for a full listing type /A2/physics/ListPhysics
+/A2/physics/Physics QGSP_BIC
+
+####Initialise
+/run/initialize
+
+
+#
+# Sets some default verbose
+#
+/control/verbose 0
+/control/saveHistory
+/run/verbose 0
+#
+# create empty scene
+#
+/vis/scene/create
+
+#/vis/open OGL
+#/vis/open OGLIX
+#/vis/sceneHandler/create OGL
+#/vis/sceneHandler/create OGLIX
+#/vis/sceneHandler/attach
+#/vis/viewer/set/viewpointThetaPhi 130. 40.
+#/vis/viewer/set/style surface
+#/vis/drawVolume
+#/vis/viewer/create
+
+#loading the macro for the simulation process
+/control/execute macros/g4run_multi.mac
+#/control/execute macros/doBeamOnTarget.mac
+

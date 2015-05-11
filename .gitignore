@@ -3,6 +3,11 @@ __pycache__/
 *$py.class
 
 sim.C
+current_file
 *.log
+sim_data/
+g4_sim/
+acqu/
+goat/
 
 *.swp

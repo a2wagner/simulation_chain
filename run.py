@@ -17,7 +17,7 @@ file is executable (chmod +x run.py) and type:
 # Change the paths where the data is stored to your needs and make sure
 # to change the AcquRoot and GoAT paths if switched on with RECONSTRUCT
 #DATA_OUTPUT_PATH = "~/MC"
-DATA_OUTPUT_PATH = '~/new_sim_chain'
+DATA_OUTPUT_PATH = '~/git/simulation_chain'
 PLUTO_DATA = "sim_data"  # relative path to DATA_OUTPUT_PATH where the Pluto data should be stored
 GEANT_DATA = "g4_sim"  # relative path to DATA_OUTPUT_PATH where the Geant4 simulated data should be stored
 A2_GEANT_PATH = "~/git/a2geant"
@@ -27,9 +27,11 @@ RECONSTRUCT = True
 ACQU_PATH = "~/git/acqu_a2dev"
 ACQU_BUILD = "~/git/acqu_a2dev/build"
 ACQU_CONFIG = "data/AR.MC"  # relative path to acqu_user directory in ACQU_PATH
+ACQU_DATA = "acqu"  # relative path to DATA_OUTPUT_PATH where the AcquRoot reconstructed data should be stored
 GOAT_PATH = "~/git/a2GoAT"
 GOAT_BUILD = "~/git/a2GoAT/build"
 GOAT_CONFIG = "configfiles/GoAT-Convert.dat"  # relative path to GOAT_PATH
+GOAT_DATA = "goat"  # relative path to DATA_OUTPUT_PATH where the GoAT sorted data should be stored
 
 # End of user changes
 
@@ -37,6 +39,12 @@ import os, sys
 import re
 import errno
 import logging
+import datetime
+import time  # TODO: remove
+import subprocess
+import fileinput
+from shutil import copyfile
+from os.path import join as pjoin
 # import module which provides colored output
 from color import *
 
@@ -45,7 +53,9 @@ pluto_data = ''
 geant_data = ''
 acqu_user = ''
 acqu_bin = ''
+acqu_data = ''
 goat_bin = ''
+goat_data = ''
 current_file = ''
 
 # lists of currently available simulation files
@@ -111,6 +121,12 @@ def check_path(path, create = False):
 
 def check_file(path, file):
     path = os.path.expanduser(path)
+    if file is None:
+        if not os.path.isfile(path):
+            print_error("[ERROR] The file '%s' does not exist!" % (path))
+            return False
+        else:
+            return True
     path = re.sub(r"(?!/)$", "/", path)  # add a trailing slash if not there
     if not os.path.isfile(path + file):
         print_error("[ERROR] The file '%s' does not exist!" % (path + file))
@@ -198,9 +214,48 @@ def max_file_number(list):
     else:
         return 0
 
-from os.path import join as pjoin
 def get_path(path, file):
     return os.path.expanduser(pjoin(path, file))
+
+def replace_all(file, search_exp, replace_exp, number_replacements = 0):
+    if number_replacements < 0:
+        logger.error('Negative number of replacements submitted')
+        sys.exit(number_replacements)
+
+    if number_replacements:
+        counter = 0
+    for line in fileinput.input(file, inplace = True):
+        if search_exp in line:
+            if number_replacements:
+                if counter == number_replacements:
+                    continue
+                else:
+                    counter += 1
+            line = replace_exp
+            #line = line.replace(search_exp, replace_exp)
+        print(line, end = '')
+
+def replace_line(file, search_exp, replace_exp):
+    replace_all(file, search_exp, replace_exp, 1)
+
+def run(cmd, logfile, error = False):
+    if error:
+        p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
+    else:
+        p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile)
+    #ret_code = p.wait()
+    #logfile.flush()
+    return p.wait()
+
+def timestamp():
+    return '[%s] ' % str(datetime.datetime.now()).split('.')[0]
+
+def write_current_info(string):
+    try:
+        with open(current_file, 'w') as f:
+            f.write(string)
+    except:
+        raise
 
 # do some kind of sanity check if the existing simulation files seem to be okay and return the maximum file number
 def check_simulation_files(channel):
@@ -249,7 +304,7 @@ def check_paths():
         return False
 
     # needed to modify global variables within this function
-    global pluto_data, geant_data, acqu_user, acqu_bin, goat_bin
+    global pluto_data, geant_data, acqu_user, acqu_bin, acqu_data, goat_bin, goat_data
 
     # create folders to store Pluto and Geant4 data if not existing
     pluto_data = re.sub(r"(?!/)$", "/", DATA_OUTPUT_PATH)  # add a trailing slash if not there
@@ -289,8 +344,25 @@ def check_paths():
         if not check_file(acqu_user, ACQU_CONFIG):
             print("        Could not find your specified AcquRoot config file.")
             return False
-        # now check GoAT
+        acqu_config_dir = pjoin(acqu_user, os.path.dirname(ACQU_CONFIG))
+        acqu_data = get_path(DATA_OUTPUT_PATH, ACQU_DATA)
+        if not check_path(acqu_data, True):
+            print("        Please make sure the AcquRoot output directory exists or could be created and is accessable as well.")
+            return False
+        # check if AcquRoot is configured to execute TA2GoAT
+        with open(get_path(acqu_user, ACQU_CONFIG), 'r') as file:
+            for line in file:
+                if 'AnalysisSetup:' in line:
+                    acqu_analysis = line.split()[-1]  # split spaces, tabs, newlines and take last entry of list
+        with open(get_path(acqu_config_dir, acqu_analysis), 'r') as file:
+            for line in file:
+                if 'Physics-Analysis:' in line and not '#Physics-Analysis:' in line:
+                    if 'TA2GoAT' not in line:
+                        print_color("[ERROR] Specified analysis class in AcquRoot config '%s'" % acqu_analysis, RED)
+                        print_color("        is not TA2GoAT. Can't create files for GoAT this way.", RED)
+                        return False
 
+        # now check GoAT
         if not check_path(GOAT_PATH):
             print("        Please make sure your goat directory can be found at the given path.")
             return False
@@ -302,30 +374,31 @@ def check_paths():
         if not check_file(GOAT_PATH, GOAT_CONFIG):
             print("        Could not find your specified goat config file.")
             return False
-        #TODO everything checked?
+        goat_data = get_path(DATA_OUTPUT_PATH, GOAT_DATA)
+        if not check_path(goat_data, True):
+            print("        Please make sure the GoAT output directory exists or could be created and is accessable as well.")
+            return False
 
     return True
 
-import subprocess
-def run(cmd, logfile, error = False):
-    if error:
-        p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
-    else:
-        p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile)
-    #ret_code = p.wait()
-    #logfile.flush()
-    return p.wait()
+def prepare_acqu():
+    config_org = pjoin(acqu_user, ACQU_CONFIG)
+    acqu_configs = os.path.dirname(config_org)
+    config_new = pjoin(acqu_configs, 'AR.sim_chain')
+    if check_file(config_new, None):
+        print('file %s exists' % config_new)
+        return config_new
+    copyfile(config_org, config_new)
 
-def write_current_info(string):
-    try:
-        with open(current_file, 'w') as f:
-            f.write(string)
-    except:
-        raise
-
-import datetime
-def timestamp():
-    return '[%s] ' % str(datetime.datetime.now()).split('.')[0]
+    with open(config_new, 'r+') as f:
+        lines = [line for line in f.readlines() if 'TreeFile:' not in line and 'Directory:' not in line]
+        # find output directory and change it
+        f.seek(0)  # go to the beginning of the file
+        f.writelines(lines)
+        f.truncate()  # resize stream --> avoid race conditions (rest of the old file occuring at the end of the new one)
+        f.write('\nDirectory:\t%s\n' % acqu_data)
+        f.write('\nTreeFile:\tpath/file.root\n')
+    return config_new
 
 def pluto_simulation(amount, sim_log):
     total = sum(files*events for _, files, events, _ in amount)
@@ -377,7 +450,6 @@ def mkin_conversion(amount, sim_log):
     print_color('\nFinished converting the files\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished converting the files\n\n')
 
-from shutil import copyfile
 def geant_simulation(amount, sim_log):
     print_color('\n - - - Starting detector simulation - - - \n', RED)
     sim_log.write('\n' + timestamp() + ' - - - Starting detector simulation - - - \n')
@@ -410,6 +482,30 @@ def geant_simulation(amount, sim_log):
     os.chdir(wd)
     print_color('\nFinished the detector simulation\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished the detector simulation\n\n')
+
+def acqu(amount, sim_log):
+    print_color('\n - - - Starting particle reconstruction with AcquRoot - - - \n', RED)
+    sim_log.write('\n' + timestamp() + ' - - - Starting particle reconstruction with AcquRoot - - - \n')
+    config = prepare_acqu()
+    cmd = acqu_bin + '/AcquRoot' + ' ' + os.path.dirname(ACQU_CONFIG) + '/' + config.split('/')[-1]
+    wd = os.getcwd()
+    os.chdir(acqu_user)
+    with open(get_path(DATA_OUTPUT_PATH, 'acqu.log'), 'w') as log:
+        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+            print_color('Processing channel %s' % format_channel(channel, False), GREEN)
+            sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
+            for i in range(number+1, number+1+files):
+                logger.info('Reconstructing file %s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
+                sim_log.write(timestamp() + 'Reconstructing file %s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
+                sim_log.flush()
+                current = timestamp()
+                current += "AcquRoot particle reconstruction, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
+                write_current_info(current)
+                replace_line(config, 'TreeFile:', 'TreeFile:\t%s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
+                run(cmd, log)
+    os.chdir(wd)
+    print_color('\nFinished particle reconstruction\n', RED)
+    sim_log.write('\n' + timestamp() + 'Finished particle reconstruction\n\n')
 
 
 def main():
@@ -498,7 +594,6 @@ def main():
     global current_file
     current_file = get_path(DATA_OUTPUT_PATH, 'current_file')
 
-    import time
     start_time = time.time()
     start_date = datetime.datetime.now()
 
@@ -514,8 +609,8 @@ def main():
         pluto_simulation(amount, log)
         mkin_conversion(amount, log)
         geant_simulation(amount, log)
-        #if RECONSTRUCT:  # do acqu and goat (hadd) --> TODO
-        #    acqu(amount, log)
+        if RECONSTRUCT:  # do acqu and goat (hadd) --> TODO
+            acqu(amount, log)
         #    goat(amount, log)
         #    hadd(amount, log)
         log.write('--- Finished after %.2f seconds ---' % (time.time() - start_time))
@@ -539,7 +634,6 @@ def main():
     #    print("channel %s, %d files existing, will simulate %d events per %d files" % (channel, max, events, files))
 
 
-    #import subprocess
     command = "ls -1 '%s' | grep -v mkin | grep %s'_' | sed 's/^.*_\(.*\)\..*$/\\1/' | sort -nr | head -1" % (pluto_data, channel)
     print(command)
     output = subprocess.check_output(command, shell=True)

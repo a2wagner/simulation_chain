@@ -32,6 +32,7 @@ GOAT_PATH = "~/git/a2GoAT"
 GOAT_BUILD = "~/git/a2GoAT/build"
 GOAT_CONFIG = "configfiles/GoAT-Convert.dat"  # relative path to GOAT_PATH
 GOAT_DATA = "goat"  # relative path to DATA_OUTPUT_PATH where the GoAT sorted data should be stored
+MERGED_DATA = "merged"  # relative path to DATA_OUTPUT_PATH where the merged data (Goat + Pluto + Geant) should be stored
 
 # End of user changes
 
@@ -56,6 +57,7 @@ acqu_bin = ''
 acqu_data = ''
 goat_bin = ''
 goat_data = ''
+merged_data = ''
 current_file = ''
 
 # lists of currently available simulation files
@@ -304,7 +306,7 @@ def check_paths():
         return False
 
     # needed to modify global variables within this function
-    global pluto_data, geant_data, acqu_user, acqu_bin, acqu_data, goat_bin, goat_data
+    global pluto_data, geant_data, acqu_user, acqu_bin, acqu_data, goat_bin, goat_data, merged_data
 
     # create folders to store Pluto and Geant4 data if not existing
     pluto_data = re.sub(r"(?!/)$", "/", DATA_OUTPUT_PATH)  # add a trailing slash if not there
@@ -371,12 +373,19 @@ def check_paths():
             print("        Could not find the main goat executable.")
             print("        Please make sure you installed GoAT properly.")
             return False
+        goat_bin = os.path.expanduser(goat_bin)
         if not check_file(GOAT_PATH, GOAT_CONFIG):
             print("        Could not find your specified goat config file.")
             return False
         goat_data = get_path(DATA_OUTPUT_PATH, GOAT_DATA)
         if not check_path(goat_data, True):
             print("        Please make sure the GoAT output directory exists or could be created and is accessable as well.")
+            return False
+
+        # finally check directory for merged output
+        merged_data = get_path(DATA_OUTPUT_PATH, MERGED_DATA)
+        if not check_path(merged_data, True):
+            print("        Please make sure the output directory for merged files exists or could be created and is accessable as well.")
             return False
 
     return True
@@ -386,7 +395,6 @@ def prepare_acqu():
     acqu_configs = os.path.dirname(config_org)
     config_new = pjoin(acqu_configs, 'AR.sim_chain')
     if check_file(config_new, None):
-        print('file %s exists' % config_new)
         return config_new
     copyfile(config_org, config_new)
 
@@ -502,16 +510,76 @@ def acqu(amount, sim_log):
                 current += "AcquRoot particle reconstruction, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
                 write_current_info(current)
                 replace_line(config, 'TreeFile:', 'TreeFile:\t%s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
-                run(cmd, log)
+                ret = run(cmd, log)
+                if ret:
+                    logger.critical('Non-zero return code (%d), something might have gone wrong' % ret)
+                    sim_log.write(timestamp() + 'Non-zero return code (%d), something might have gone wrong\n' % ret)
     os.chdir(wd)
     print_color('\nFinished particle reconstruction\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished particle reconstruction\n\n')
+
+def goat(amount, sim_log):
+    print_color('\n - - - Starting GoAT particle sorting - - - \n', RED)
+    sim_log.write('\n' + timestamp() + ' - - - Starting GoAT particle sorting - - - \n')
+    cmd = goat_bin + '/goat' + ' ' + GOAT_CONFIG + ' -d ' + acqu_data + ' -D ' + goat_data
+    wd = os.getcwd()
+    os.chdir(os.path.expanduser(GOAT_PATH))
+    with open(get_path(DATA_OUTPUT_PATH, 'goat.log'), 'w') as log:
+        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+            print_color('Processing channel %s' % format_channel(channel, False), GREEN)
+            sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
+            for i in range(number+1, number+1+files):
+                input_file = 'Acqu_g4_sim_%s_%02d.root' % (channel, i)
+                logger.info('Processing file %s/%s' % (acqu_data, input_file))
+                sim_log.write(timestamp() + 'Processing file %s/%s' % (acqu_data, input_file))
+                sim_log.flush()
+                current = timestamp()
+                current += "GoAT particle sorting, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
+                write_current_info(current)
+                run(cmd + ' -f ' + input_file, log)
+    os.chdir(wd)
+    print_color('\nFinished particle sorting\n', RED)
+    sim_log.write('\n' + timestamp() + 'Finished particle sorting\n\n')
+
+def hadd(amount, sim_log):
+    print_color('\n - - - Start merging root files - - - \n', RED)
+    sim_log.write('\n' + timestamp() + ' - - - Start merging root files - - - \n')
+    cmd = 'hadd '
+    wd = os.getcwd()
+    os.chdir(os.path.expanduser(DATA_OUTPUT_PATH))
+    with open('hadd.log', 'w') as log:
+        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+            print_color('Processing channel %s' % format_channel(channel, False), GREEN)
+            sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
+            for i in range(number+1, number+1+files):
+                output_file = '%s/Goat_merged_%s_%02d.root' % (merged_data, channel, i)
+                logger.info('Merging file %s' % output_file)
+                sim_log.write(timestamp() + 'Merging file %s' % output_file)
+                sim_log.flush()
+                current = timestamp()
+                current += "hadd file merging, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
+                write_current_info(current)
+                goat = '%s/GoAT_g4_sim_%s_%02d.root ' % (goat_data, channel, i)
+                pluto = '%s/sim_%s_%02d.root ' % (pluto_data, channel, i)
+                geant = '%s/g4_sim_%s_%02d.root' % (geant_data, channel, i)
+                current_cmd = cmd + output_file + ' ' + goat + pluto + geant
+                run(current_cmd, log, True)  # print errors to the log file because of missing PParticle dictionary
+    os.chdir(wd)
+    print_color('\nFinished merging files\n', RED)
+    sim_log.write('\n' + timestamp() + 'Finished merging files\n\n')
 
 
 def main():
     # check if all needed paths and executables exist, terminate otherwise
     if not check_paths():
         sys.exit(1)
+
+    if RECONSTRUCT:
+        print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
+        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', BLUE)
+        print_color('           AcquRoot analysis config file which exits AcquRoot', BLUE)
+        print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
+        print()
 
     # populate lists with existing simulation files
     global pluto_files, mkin_files, geant_files
@@ -611,8 +679,8 @@ def main():
         geant_simulation(amount, log)
         if RECONSTRUCT:  # do acqu and goat (hadd) --> TODO
             acqu(amount, log)
-        #    goat(amount, log)
-        #    hadd(amount, log)
+            goat(amount, log)
+            hadd(amount, log)
         log.write('--- Finished after %.2f seconds ---' % (time.time() - start_time))
 
     print("--- %.2f seconds ---" % (time.time() - start_time))

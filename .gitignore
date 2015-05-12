@@ -9,5 +9,6 @@ sim_data/
 g4_sim/
 acqu/
 goat/
+merged/
 
 *.swp

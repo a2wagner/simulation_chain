@@ -41,7 +41,6 @@ import re
 import errno
 import logging
 import datetime
-import time  # TODO: remove
 import subprocess
 import fileinput
 from shutil import copyfile
@@ -662,7 +661,6 @@ def main():
     global current_file
     current_file = get_path(DATA_OUTPUT_PATH, 'current_file')
 
-    start_time = time.time()
     start_date = datetime.datetime.now()
 
     with open(get_path(DATA_OUTPUT_PATH, 'simulation.log'), 'w') as log:
@@ -677,43 +675,24 @@ def main():
         pluto_simulation(amount, log)
         mkin_conversion(amount, log)
         geant_simulation(amount, log)
-        if RECONSTRUCT:  # do acqu and goat (hadd) --> TODO
+        if RECONSTRUCT:
             acqu(amount, log)
             goat(amount, log)
             hadd(amount, log)
-        log.write('--- Finished after %.2f seconds ---' % (time.time() - start_time))
+        end_date = datetime.datetime.now()
+        delta = end_date - start_date
+        log.write('--- Finished after %.2f seconds ---' % delta.total_seconds())
 
-    print("--- %.2f seconds ---" % (time.time() - start_time))
+    print("--- %.2f seconds ---" % delta.total_seconds())
 
     os.remove(current_file)
 
-    end_date = datetime.datetime.now()
     print('Simulation for %d channels done (total %s events)' % (len(amount), unit_prefix(total_events)))
     print('Start time: ' + start_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
     print('Stop time:  ' + end_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
-    delta = end_date - start_date
     print('Elapsed:    %d s (%s)' % (delta.total_seconds(), str(delta).split('.')[0]))
     #print('Elapsed:    %d s (%d days, %d hours and %d minutes)' % (delta.total_seconds(), delta.days, delta.seconds/3600, delta.seconds%3600/60)
     print_color('\n - - - F I N I S H E D - - -\n', BLUE)
-
-
-'''
-    #for channel, files, events, max in amount:
-    #    print("channel %s, %d files existing, will simulate %d events per %d files" % (channel, max, events, files))
-
-
-    command = "ls -1 '%s' | grep -v mkin | grep %s'_' | sed 's/^.*_\(.*\)\..*$/\\1/' | sort -nr | head -1" % (pluto_data, channel)
-    print(command)
-    output = subprocess.check_output(command, shell=True)
-    p = subprocess.Popen('date', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    out, err = p.communicate()
-    p_status = p.wait()
-    print(output.decode('utf-8'))
-    print('out:', output.decode('utf-8'))
-    print('err:', err.decode('utf-8'))
-    print('status:', p_status)
-'''
-
 
 
 if __name__ == '__main__':

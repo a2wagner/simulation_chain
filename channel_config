@@ -1,0 +1,32 @@
+# Channel configuration file
+# Please use only spaces and/or tabs as separators
+# Use a hash to exclude channels from the simulation procedure
+
+# channel      #files  #events
+etap_e+e-g        2    100000
+etap_pi+pi-eta    2    100000
+etap_rho0g        2    100000
+etap_mu+mu-g      2    100000
+etap_gg           2    100000
+eta_e+e-g         2    100000
+eta_pi+pi-g       2    100000
+eta_pi+pi-pi0     2    100000
+eta_mu+mu-g       2    100000
+eta_gg            2    100000
+omega_e+e-pi0     2    100000
+omega_pi+pi-pi0   2    100000
+omega_pi+pi-      2    100000
+rho0_e+e-         2    100000
+rho0_pi+pi-       2    100000
+pi0_e+e-g         2    100000
+pi0_gg            2    100000
+pi+pi-pi0         2    100000
+pi+pi-            2    100000
+pi0pi0_4g         2    100000
+pi0eta_4g         2    100000
+etap_pi0pi0eta    2    100000
+etap_pi0pi0pi0    2    100000
+etap_pi+pi-pi0    2    100000
+etap_omegag       2    100000
+omega_etag        2    100000
+

@@ -571,26 +571,8 @@ def hadd(amount, sim_log):
     print_color('\nFinished merging files\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished merging files\n\n')
 
-
-def main():
-    # check if all needed paths and executables exist, terminate otherwise
-    if not check_paths():
-        sys.exit(1)
-
-    if RECONSTRUCT:
-        print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
-        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', BLUE)
-        print_color('           AcquRoot analysis config file which exits AcquRoot', BLUE)
-        print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
-        print()
-
-    # populate lists with existing simulation files
-    global pluto_files, mkin_files, geant_files
-    sim_files = os.listdir(pluto_data)
-    geant_files = os.listdir(geant_data)
-    mkin_files = [file for file in sim_files if '_mkin' in file]
-    pluto_files = list(set(sim_files) - set(mkin_files))
-
+def simulation_dialogue():
+    amount = []
     print("The following %d channels can be simulated:" % len(channels))
     for channel in channels:
         print(format_channel(channel))
@@ -603,7 +585,6 @@ def main():
     while a not in allowed_responses:
         a = input("You've entered an invalid response! Please try again: ")
 
-    amount = []
     if a in positive_response:
         n_files = input_int("How much files per channel should be generated?")
         n_events = input_int("How much events should be stored in each file?")
@@ -637,8 +618,65 @@ def main():
                         else:
                             print("Invalid input, will skip this channel!")
                             break
-
     print()
+    return amount
+
+def main():
+    # check command line arguments for channel configuration file
+    channel_config = None
+    if len(sys.argv) == 2:
+        file = sys.argv[1]
+        if not check_file('.', file):
+            sys.exit(1)
+        channel_config = open(file, 'r')
+    elif len(sys.argv) > 2:
+        print_error('[ERROR] Too many arguments')
+        print('Usage: %s [%s]' % (sys.argv[0], 'config file'))
+        sys.exit(1)
+
+    amount = []
+
+    if channel_config:
+        print_color('Configuration file found, will read channels to be simulated from it\n', GREEN)
+        lines = [line for line in channel_config.readlines() if not line.startswith('#') and line.split()]  # last part excludes empty lines
+        for line in lines:
+            channel = line.split()
+            try:
+                if len(channel) != 3:
+                    print_error('[ERROR] Wrong number of arguments for channel %s' % channel[0])
+                    print('     This channel will be skipped')
+                elif channel[0] not in channels:
+                    print_color('[WARNING] Channel "%s" unknown, will not be considered' % channel[0], RED)
+                else:
+                    max_number = check_simulation_files(channel[0])  # maximum file number of existing simulation files
+                    amount.append((channel[0], int(channel[1]), int(channel[2]), max_number))
+            except:
+                print_error('[ERROR] Invalid syntax in the following line:\n%s' % line.rstrip())
+                print('     This channel will be skipped')
+
+    # check if all needed paths and executables exist, terminate otherwise
+    if not check_paths():
+        sys.exit(1)
+
+    if RECONSTRUCT:
+        print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
+        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', BLUE)
+        print_color('           AcquRoot analysis config file which exits AcquRoot', BLUE)
+        print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
+        print()
+
+    # populate lists with existing simulation files
+    global pluto_files, mkin_files, geant_files
+    sim_files = os.listdir(pluto_data)
+    geant_files = os.listdir(geant_data)
+    mkin_files = [file for file in sim_files if '_mkin' in file]
+    pluto_files = list(set(sim_files) - set(mkin_files))
+
+    if not channel_config:
+        amount = simulation_dialogue()
+    else:
+        channel_config.close()
+
     print(str(len(amount)) + " channels configured. The following simulation will take place:")
     total_files, total_events = 0, 0
     for channel, nf, ne, _ in amount:

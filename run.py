@@ -285,6 +285,11 @@ def check_simulation_files(channel):
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
         max = max_geant
+    elif max_geant < max:
+        print_color("\tWarning", RED)
+        print("There are more Pluto generated files than Geant4 simulated\nfiles for channel %s"
+                % format_channel(channel, False))
+        input("Will continue by pressing any key ")
     
     return max
 

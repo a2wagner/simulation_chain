@@ -394,6 +394,10 @@ def prepare_acqu():
     acqu_configs = os.path.dirname(config_org)
     config_new = pjoin(acqu_configs, 'AR.sim_chain')
     if check_file(config_new, None):
+        for line in fileinput.input(config_new, inplace = True):
+            if 'Directory:' in line:
+                line = 'Directory:\t%s\n' % acqu_data
+            print(line, end = '')
         return config_new
     copyfile(config_org, config_new)
 

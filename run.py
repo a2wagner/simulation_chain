@@ -741,8 +741,8 @@ def main():
     print('Simulation for %d channels done (total %s events)' % (len(amount), unit_prefix(total_events)))
     print('Start time: ' + start_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
     print('Stop time:  ' + end_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
-    print('Elapsed:    %d s (%s)' % (delta.total_seconds(), str(delta).split('.')[0]))
-    #print('Elapsed:    %d s (%d days, %d hours and %d minutes)' % (delta.total_seconds(), delta.days, delta.seconds/3600, delta.seconds%3600/60)
+    print('Elapsed:    %d s (%s)' % (round(delta.total_seconds()), str(delta).split('.')[0]))
+    #print('Elapsed:    %d s (%d days, %d hours and %d minutes)' % (round(delta.total_seconds()), delta.days, delta.seconds/3600, delta.seconds%3600/60)
     print_color('\n - - - F I N I S H E D - - -\n', BLUE)
 
 

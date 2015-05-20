@@ -629,6 +629,27 @@ def simulation_dialogue():
     print()
     return amount
 
+def process_config(config_file):
+    amount = []
+    print_color('Configuration file found, will read channels to be simulated from it\n', GREEN)
+    lines = [line for line in config_file.readlines() if not line.startswith('#') and line.split()]  # last part excludes empty lines
+    for line in lines:
+        channel = line.split()
+        try:
+            if len(channel) != 3:
+                print_error('[ERROR] Wrong number of arguments for channel %s' % channel[0])
+                print('     This channel will be skipped')
+            elif channel[0] not in channels:
+                print_color('[WARNING] Channel "%s" unknown, will not be considered' % channel[0], RED)
+            else:
+                max_number = check_simulation_files(channel[0])  # maximum file number of existing simulation files
+                amount.append((channel[0], int(channel[1]), int(channel[2]), max_number))
+        except:
+            print_error('[ERROR] Invalid syntax in the following line:\n%s' % line.rstrip())
+            print('     This channel will be skipped')
+    return amount
+
+
 def main():
     # check command line arguments for channel configuration file
     channel_config = None
@@ -646,31 +667,12 @@ def main():
     if not check_paths():
         sys.exit(1)
 
-    amount = []
     # populate lists with existing simulation files
     global pluto_files, mkin_files, geant_files
     sim_files = os.listdir(pluto_data)
     geant_files = os.listdir(geant_data)
     mkin_files = [file for file in sim_files if '_mkin' in file]
     pluto_files = list(set(sim_files) - set(mkin_files))
-
-    if channel_config:
-        print_color('Configuration file found, will read channels to be simulated from it\n', GREEN)
-        lines = [line for line in channel_config.readlines() if not line.startswith('#') and line.split()]  # last part excludes empty lines
-        for line in lines:
-            channel = line.split()
-            try:
-                if len(channel) != 3:
-                    print_error('[ERROR] Wrong number of arguments for channel %s' % channel[0])
-                    print('     This channel will be skipped')
-                elif channel[0] not in channels:
-                    print_color('[WARNING] Channel "%s" unknown, will not be considered' % channel[0], RED)
-                else:
-                    max_number = check_simulation_files(channel[0])  # maximum file number of existing simulation files
-                    amount.append((channel[0], int(channel[1]), int(channel[2]), max_number))
-            except:
-                print_error('[ERROR] Invalid syntax in the following line:\n%s' % line.rstrip())
-                print('     This channel will be skipped')
 
     if RECONSTRUCT:
         print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
@@ -679,9 +681,11 @@ def main():
         print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
         print()
 
+    amount = []
     if not channel_config:
         amount = simulation_dialogue()
     else:
+        amount = process_config(channel_config)
         channel_config.close()
 
     print(str(len(amount)) + " channels configured. The following simulation will take place:")
@@ -731,8 +735,6 @@ def main():
         end_date = datetime.datetime.now()
         delta = end_date - start_date
         log.write('--- Finished after %.2f seconds ---' % delta.total_seconds())
-
-    print("--- %.2f seconds ---" % delta.total_seconds())
 
     os.remove(current_file)
 

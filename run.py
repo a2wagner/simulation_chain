@@ -512,7 +512,7 @@ def acqu(amount, sim_log):
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             for i in range(number+1, number+1+files):
                 logger.info('Reconstructing file %s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
-                sim_log.write(timestamp() + 'Reconstructing file %s/g4_sim_%s_%02d.root' % (geant_data, channel, i))
+                sim_log.write(timestamp() + 'Reconstructing file %s/g4_sim_%s_%02d.root\n' % (geant_data, channel, i))
                 sim_log.flush()
                 current = timestamp()
                 current += "AcquRoot particle reconstruction, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
@@ -539,7 +539,7 @@ def goat(amount, sim_log):
             for i in range(number+1, number+1+files):
                 input_file = 'Acqu_g4_sim_%s_%02d.root' % (channel, i)
                 logger.info('Processing file %s/%s' % (acqu_data, input_file))
-                sim_log.write(timestamp() + 'Processing file %s/%s' % (acqu_data, input_file))
+                sim_log.write(timestamp() + 'Processing file %s/%s\n' % (acqu_data, input_file))
                 sim_log.flush()
                 current = timestamp()
                 current += "GoAT particle sorting, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
@@ -562,7 +562,7 @@ def hadd(amount, sim_log):
             for i in range(number+1, number+1+files):
                 output_file = '%s/Goat_merged_%s_%02d.root' % (merged_data, channel, i)
                 logger.info('Merging file %s' % output_file)
-                sim_log.write(timestamp() + 'Merging file %s' % output_file)
+                sim_log.write(timestamp() + 'Merging file %s\n' % output_file)
                 sim_log.flush()
                 current = timestamp()
                 current += "hadd file merging, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)

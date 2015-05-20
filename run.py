@@ -11,6 +11,9 @@ To execute this script, check that all programs are installed properly
 and set the variables accordingly. When this is done, make sure the
 file is executable (chmod +x run.py) and type:
 ./run.py
+It is also possible to provide a config file with everything which
+should be simulated like the example channel_config, simply run
+./run.py channel_config
 '''
 
 # IMPORTANT!

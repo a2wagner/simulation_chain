@@ -639,7 +639,17 @@ def main():
         print('Usage: %s [%s]' % (sys.argv[0], 'config file'))
         sys.exit(1)
 
+    # check if all needed paths and executables exist, terminate otherwise
+    if not check_paths():
+        sys.exit(1)
+
     amount = []
+    # populate lists with existing simulation files
+    global pluto_files, mkin_files, geant_files
+    sim_files = os.listdir(pluto_data)
+    geant_files = os.listdir(geant_data)
+    mkin_files = [file for file in sim_files if '_mkin' in file]
+    pluto_files = list(set(sim_files) - set(mkin_files))
 
     if channel_config:
         print_color('Configuration file found, will read channels to be simulated from it\n', GREEN)
@@ -659,23 +669,12 @@ def main():
                 print_error('[ERROR] Invalid syntax in the following line:\n%s' % line.rstrip())
                 print('     This channel will be skipped')
 
-    # check if all needed paths and executables exist, terminate otherwise
-    if not check_paths():
-        sys.exit(1)
-
     if RECONSTRUCT:
         print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
         print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', BLUE)
         print_color('           AcquRoot analysis config file which exits AcquRoot', BLUE)
         print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
         print()
-
-    # populate lists with existing simulation files
-    global pluto_files, mkin_files, geant_files
-    sim_files = os.listdir(pluto_data)
-    geant_files = os.listdir(geant_data)
-    mkin_files = [file for file in sim_files if '_mkin' in file]
-    pluto_files = list(set(sim_files) - set(mkin_files))
 
     if not channel_config:
         amount = simulation_dialogue()

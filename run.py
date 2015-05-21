@@ -498,6 +498,7 @@ def geant_simulation(amount, sim_log):
                 if ret:
                     logger.critical('Non-zero return code (%d), something might have gone wrong' % ret)
                     sim_log.write(timestamp() + 'Non-zero return code (%d), something might have gone wrong\n' % ret)
+                    sim_log.flush()
     os.chdir(wd)
     print_color('\nFinished the detector simulation\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished the detector simulation\n\n')
@@ -525,6 +526,7 @@ def acqu(amount, sim_log):
                 if ret:
                     logger.critical('Non-zero return code (%d), something might have gone wrong' % ret)
                     sim_log.write(timestamp() + 'Non-zero return code (%d), something might have gone wrong\n' % ret)
+                    sim_log.flush()
     os.chdir(wd)
     print_color('\nFinished particle reconstruction\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished particle reconstruction\n\n')
@@ -547,7 +549,11 @@ def goat(amount, sim_log):
                 current = timestamp()
                 current += "GoAT particle sorting, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
                 write_current_info(current)
-                run(cmd + ' -f ' + input_file, log)
+                ret = run(cmd + ' -f ' + input_file, log)
+                if ret:
+                    logger.critical('Non-zero return code (%d), something might have gone wrong' % ret)
+                    sim_log.write(timestamp() + 'Non-zero return code (%d), something might have gone wrong\n' % ret)
+                    sim_log.flush()
     os.chdir(wd)
     print_color('\nFinished particle sorting\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished particle sorting\n\n')
@@ -574,7 +580,11 @@ def hadd(amount, sim_log):
                 pluto = '%s/sim_%s_%02d.root ' % (pluto_data, channel, i)
                 geant = '%s/g4_sim_%s_%02d.root' % (geant_data, channel, i)
                 current_cmd = cmd + output_file + ' ' + goat + pluto + geant
-                run(current_cmd, log, True)  # print errors to the log file because of missing PParticle dictionary
+                ret = run(current_cmd, log, True)  # print errors to the log file because of missing PParticle dictionary
+                if ret:
+                    logger.critical('Non-zero return code (%d), something might have gone wrong' % ret)
+                    sim_log.write(timestamp() + 'Non-zero return code (%d), something might have gone wrong\n' % ret)
+                    sim_log.flush()
     os.chdir(wd)
     print_color('\nFinished merging files\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished merging files\n\n')

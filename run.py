@@ -46,7 +46,7 @@ import logging
 import datetime
 import subprocess
 import fileinput
-from shutil import copyfile
+from shutil import copyfile, move
 from os.path import join as pjoin
 # import module which provides colored output
 from color import *
@@ -465,7 +465,7 @@ def mkin_conversion(amount, sim_log):
                     for a 10cm target with 2cm beam diameter. Change values accordingly. '''
                 #run(cmd + " --input %s/%s_%02d.root --target length=10 --beam diam=2" % (pluto_data, channel, i), log)
                 # move the mkin file to the pluto simulation data directory
-                os.rename('%s/sim_%s_%02d_mkin.root' % (os.getcwd(), channel, i), '%s/sim_%s_%02d_mkin.root' % (pluto_data, channel, i))
+                move('%s/sim_%s_%02d_mkin.root' % (os.getcwd(), channel, i), '%s/sim_%s_%02d_mkin.root' % (pluto_data, channel, i))
     print_color('\nFinished converting the files\n', RED)
     sim_log.write('\n' + timestamp() + 'Finished converting the files\n\n')
 

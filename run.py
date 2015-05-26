@@ -269,32 +269,45 @@ def check_simulation_files(channel):
     max_pluto = max_file_number(pluto_channel)
     max_mkin = max_file_number(mkin_channel)
     max_geant = max_file_number(geant_channel)
-    max = max_pluto
+    maximum = max_pluto
     if max_pluto > max_mkin:
         print_color("\tWarning", RED)
         print("Maybe there are some files for channel %s that\naren't converted yet (and hence simulated with Geant4)"
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
-        max = max_pluto
+        maximum = max_pluto
     elif max_mkin > max_pluto:
         print_color("\tWarning", RED)
         print("There are more converted files than Pluto generated ones\nfor channel %s – proceed at your own risk"
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
-        max = max_mkin
-    if max_geant > max:
+        maximum = max_mkin
+    if max_geant > maximum:
         print_color("\tWarning", RED)
         print("There are more Geant4 simulation files than Pluto generated\nfiles for channel %s"
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
-        max = max_geant
-    elif max_geant < max:
+        maximum = max_geant
+    elif max_geant < maximum:
         print_color("\tWarning", RED)
         print("There are more Pluto generated files than Geant4 simulated\nfiles for channel %s"
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
     
-    return max
+    return maximum
+
+def list_file_amount():
+    print('Amount of simulated files per channel:')
+    for channel in channels:
+        pluto_channel = [f for f in pluto_files if channel in f]
+        mkin_channel = [f for f in mkin_files if channel in f]
+        geant_channel = [f for f in geant_files if channel in f]
+        max_pluto = max_file_number(pluto_channel)
+        max_mkin = max_file_number(mkin_channel)
+        max_geant = max_file_number(geant_channel)
+        maximum = max(max_pluto, max_mkin, max_geant)
+        if maximum > 0:
+            print(' {0:<20s} -- {1:>3d} files'.format(format_channel(channel), maximum))
 
 # check if all the needed path and files exist
 def check_paths():
@@ -663,14 +676,20 @@ def process_config(config_file):
 def main():
     # check command line arguments for channel configuration file
     channel_config = None
+    list_files = False
     if len(sys.argv) == 2:
-        file = sys.argv[1]
-        if not check_file('.', file):
-            sys.exit(1)
-        channel_config = open(file, 'r')
+        if sys.argv[1].startswith('--') and 'list' in sys.argv[1]:
+            list_files = True
+        else:
+            file = sys.argv[1]
+            if not check_file('.', file):
+                sys.exit(1)
+            channel_config = open(file, 'r')
     elif len(sys.argv) > 2:
         print_error('[ERROR] Too many arguments')
         print('Usage: %s [%s]' % (sys.argv[0], 'config file'))
+        print('Or to list the amount of existing files:')
+        print('   %s --list' % sys.argv[0])
         sys.exit(1)
 
     # check if all needed paths and executables exist, terminate otherwise
@@ -683,6 +702,10 @@ def main():
     geant_files = os.listdir(geant_data)
     mkin_files = [file for file in sim_files if '_mkin' in file]
     pluto_files = list(set(sim_files) - set(mkin_files))
+
+    if list_files:
+        list_file_amount() 
+        sys.exit(0)
 
     if RECONSTRUCT:
         print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
@@ -708,8 +731,12 @@ def main():
     print(" Total %s events in %d files" % (unit_prefix(total_events), total_files))
     print(" Files will be stored in " + DATA_OUTPUT_PATH)
 
-    # pure simulation time for 58M events done in around 22 days and 6 hours (534.4 hours) --> ca. 9.213 hours per 1M events
-    hours = int(total_events/1E6*9.21)
+    # simulation including reconstruction (new geant build) for 6M events done in around 69.95 hours --> ca. 11.66 hours per 1M events
+    # pure reconstruction time for 1M events ca. 0.15 hours --> pure simulation time 11.51 hours
+    if RECONSTRUCT:
+        hours = round(total_events/1E6*11.66)
+    else:
+        hours = round(total_events/1E6*11.51)
     print("Pretty rough time estimation (based on a 3.2GHz Intel Dual-Core and 4GB RAM):")
     if hours > 24:
         print(" %d hours (about %d days and %d hours)" % (hours, hours/24, hours%24))

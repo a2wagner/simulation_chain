@@ -784,4 +784,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print('\nCtrl+C detected, will abort simulation process')
+        sys.exit(0)

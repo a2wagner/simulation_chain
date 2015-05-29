@@ -664,12 +664,15 @@ def process_config(config_file):
                 print('     This channel will be skipped')
             elif channel[0] not in channels:
                 print_color('[WARNING] Channel "%s" unknown, will not be considered' % channel[0], RED)
-            else:
+            elif channel[1] is not '0' and channel[2] is not '0':
                 max_number = check_simulation_files(channel[0])  # maximum file number of existing simulation files
                 amount.append((channel[0], int(channel[1]), int(channel[2]), max_number))
+            else:
+                print('  Skip channel ' + format_channel(channel[0], False))
         except:
             print_error('[ERROR] Invalid syntax in the following line:\n%s' % line.rstrip())
             print('     This channel will be skipped')
+    print()
     return amount
 
 

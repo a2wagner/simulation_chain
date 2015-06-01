@@ -734,12 +734,12 @@ def main():
     print(" Total %s events in %d files" % (unit_prefix(total_events), total_files))
     print(" Files will be stored in " + DATA_OUTPUT_PATH)
 
-    # simulation including reconstruction (new geant build) for 6M events done in around 69.95 hours --> ca. 11.66 hours per 1M events
-    # pure reconstruction time for 1M events ca. 0.15 hours --> pure simulation time 11.51 hours
+    # simulation including reconstruction (new geant build) for 6M events done in around 72.9 hours --> ca. 12.15 hours per 1M events
+    # pure reconstruction time for 1M events ca. 0.16 hours --> pure simulation time 11.99 hours
     if RECONSTRUCT:
-        hours = round(total_events/1E6*11.66)
+        hours = round(total_events/1E6*12.15)
     else:
-        hours = round(total_events/1E6*11.51)
+        hours = round(total_events/1E6*11.99)
     print("Pretty rough time estimation (based on a 3.2GHz Intel Dual-Core and 4GB RAM):")
     if hours > 24:
         print(" %d hours (about %d days and %d hours)" % (hours, hours/24, hours%24))
@@ -747,6 +747,12 @@ def main():
         print(" less than an hour")
     else:
         print(" %d hours" % hours)
+    if hours > 24:
+        print(' Finished approximately:  ' +
+                (datetime.datetime.now() + datetime.timedelta(hours = hours)).strftime("%A, %e. %B %Y %k:%M %Z"))
+    elif hours > 12:
+        print(' Finished approximately:  ' +
+                (datetime.datetime.now() + datetime.timedelta(hours = hours)).strftime("%e. %B %Y %k:%M %Z"))
 
     input("\nStart the whole simulation process by hitting enter. ")
 

@@ -131,8 +131,7 @@ def check_file(path, file):
             return False
         else:
             return True
-    path = re.sub(r"(?!/)$", "/", path)  # add a trailing slash if not there
-    if not os.path.isfile(path + file):
+    if not os.path.isfile(get_path(path, file)):
         print_error("[ERROR] The file '%s' does not exist!" % (path + file))
         return False
     else:
@@ -293,7 +292,7 @@ def check_simulation_files(channel):
         print("There are more Pluto generated files than Geant4 simulated\nfiles for channel %s"
                 % format_channel(channel, False))
         input("Will continue by pressing any key ")
-    
+
     return maximum
 
 def list_file_amount():
@@ -329,18 +328,16 @@ def check_paths():
     global pluto_data, geant_data, acqu_user, acqu_bin, acqu_data, goat_bin, goat_data, merged_data
 
     # create folders to store Pluto and Geant4 data if not existing
-    pluto_data = re.sub(r"(?!/)$", "/", DATA_OUTPUT_PATH)  # add a trailing slash if not there
+    pluto_data = DATA_OUTPUT_PATH
     geant_data = pluto_data[:]  # copy the string
-    pluto_data += PLUTO_DATA
+    pluto_data = get_path(pluto_data, PLUTO_DATA)
     if not check_path(pluto_data, True):
         print("        Please make sure the Pluto output directory exists or could be created and is accessable as well.")
         return False
-    pluto_data = os.path.expanduser(pluto_data)
-    geant_data += GEANT_DATA
+    geant_data = get_path(geant_data, GEANT_DATA)
     if not check_path(geant_data, True):
         print("        Please make sure the Geant output directory exists or could be created and is accessable as well.")
         return False
-    geant_data = os.path.expanduser(geant_data)
     # check if the pluto2mkin converter is available
     if not check_file(A2_GEANT_PATH, 'pluto2mkin'):
         print("        No pluto2mkin executable in the Geant directory found.")
@@ -352,17 +349,15 @@ def check_paths():
         if not check_path(ACQU_PATH):
             print("        Please make sure your acqu directory can be found at the given path.")
             return False
-        acqu_user = re.sub(r"(?!/)$", "/", ACQU_PATH) + 'acqu_user'
+        acqu_user = get_path(ACQU_PATH, 'acqu_user')
         if not check_path(acqu_user):
             print("        Please make sure you installed acqu properly.")
             return False
-        acqu_user = os.path.expanduser(acqu_user)
-        acqu_bin = re.sub(r"(?!/)$", "/", ACQU_BUILD) + 'bin'
+        acqu_bin = get_path(ACQU_BUILD, 'bin')
         if not check_file(acqu_bin, 'AcquRoot'):
             print("        Could not find the main AcquRoot executable.")
             print("        Please make sure you installed acqu properly.")
             return False
-        acqu_bin = os.path.expanduser(acqu_bin)
         if not check_file(acqu_user, ACQU_CONFIG):
             print("        Could not find your specified AcquRoot config file.")
             return False
@@ -388,7 +383,7 @@ def check_paths():
         if not check_path(GOAT_PATH):
             print("        Please make sure your goat directory can be found at the given path.")
             return False
-        goat_bin = re.sub(r"(?!/)$", "/", GOAT_BUILD) + 'bin'
+        goat_bin = get_path(GOAT_BUILD, 'bin')
         if not check_file(goat_bin, 'goat'):
             print("        Could not find the main goat executable.")
             print("        Please make sure you installed GoAT properly.")
@@ -681,7 +676,7 @@ def main():
     channel_config = None
     list_files = False
     if len(sys.argv) == 2:
-        if sys.argv[1].startswith('--') and 'list' in sys.argv[1]:
+        if '--list' in sys.argv:
             list_files = True
         else:
             file = sys.argv[1]

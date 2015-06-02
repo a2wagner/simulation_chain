@@ -792,3 +792,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('\nCtrl+C detected, will abort simulation process')
         sys.exit(0)
+    except Exception as e:
+        print('An error occured during execution:')
+        print(e)
+        sys.exit(1)

@@ -101,7 +101,7 @@ channels = [
     'omega_etag'
 ]
 
-def check_path(path, create = False):
+def check_path(path, create=False):
     path = os.path.expanduser(path)
     exist = os.path.isdir(path)
     if not exist and create:
@@ -149,7 +149,7 @@ def is_readable(path):
 def is_writeable(path):
     return check_permission(path, os.W_OK)
 
-def format_channel(channel, spaces = True):
+def format_channel(channel, spaces=True):
     replace = [
         ('etap', 'eta\''),
         ('eta', 'η'),
@@ -206,12 +206,12 @@ def input_int(message):
 
     return int(n)
 
-def max_file_number(list):
-    if not list:
+def max_file_number(lst):
+    if not lst:
         return 0
-    list.sort()
+    lst.sort()
     n = re.compile(r'^.+_(\d+)(_mkin)?\..*$')
-    match = n.search(list[-1])
+    match = n.search(lst[-1])
     if match is not None:
         return int(match.group(1))
     else:
@@ -220,14 +220,14 @@ def max_file_number(list):
 def get_path(path, file):
     return os.path.expanduser(pjoin(path, file))
 
-def replace_all(file, search_exp, replace_exp, number_replacements = 0):
+def replace_all(file, search_exp, replace_exp, number_replacements=0):
     if number_replacements < 0:
         logger.error('Negative number of replacements submitted')
         sys.exit(number_replacements)
 
     if number_replacements:
         counter = 0
-    for line in fileinput.input(file, inplace = True):
+    for line in fileinput.input(file, inplace=True):
         if search_exp in line:
             if number_replacements:
                 if counter == number_replacements:
@@ -236,12 +236,12 @@ def replace_all(file, search_exp, replace_exp, number_replacements = 0):
                     counter += 1
             line = replace_exp
             #line = line.replace(search_exp, replace_exp)
-        print(line, end = '')
+        print(line, end='')
 
 def replace_line(file, search_exp, replace_exp):
     replace_all(file, search_exp, replace_exp, 1)
 
-def run(cmd, logfile, error = False):
+def run(cmd, logfile, error=False):
     if error:
         p = subprocess.Popen(cmd, shell=True, universal_newlines=True, stdout=logfile, stderr=logfile)
     else:
@@ -410,10 +410,10 @@ def prepare_acqu():
     acqu_configs = os.path.dirname(config_org)
     config_new = pjoin(acqu_configs, 'AR.sim_chain')
     if check_file(config_new, None):
-        for line in fileinput.input(config_new, inplace = True):
+        for line in fileinput.input(config_new, inplace=True):
             if 'Directory:' in line:
                 line = 'Directory:\t%s\n' % acqu_data
-            print(line, end = '')
+            print(line, end='')
         return config_new
     copyfile(config_org, config_new)
 
@@ -432,7 +432,7 @@ def pluto_simulation(amount, sim_log):
     print_color('\nStarting Pluto simulation for total %s events\n' % unit_prefix(total), RED)
     sim_log.write('\n' + timestamp() + 'Starting Pluto simulation for total %s events\n' % unit_prefix(total))
     with open(get_path(DATA_OUTPUT_PATH, 'pluto.log'), 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             print_color('Processing channel %s' % format_channel(channel, False), GREEN)
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             for i in range(number+1, number+1+files):  # number is the highest existing file number, start with number+1, for end of range add number of files
@@ -461,7 +461,7 @@ def mkin_conversion(amount, sim_log):
     sim_log.write('\n' + timestamp() + 'Conversion of the %d Pluto-generated files\n' % n_files)
     cmd = get_path(A2_GEANT_PATH, 'pluto2mkin')
     with open(get_path(DATA_OUTPUT_PATH, 'mkin.log'), 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             for i in range(number+1, number+1+files):
                 current = timestamp()
                 current += "Converting files for Geant, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
@@ -486,7 +486,7 @@ def geant_simulation(amount, sim_log):
     wd = os.getcwd()
     os.chdir(os.path.expanduser(A2_GEANT_PATH))
     with open(get_path(DATA_OUTPUT_PATH, 'geant.log'), 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             print_color('Processing channel %s' % format_channel(channel, False), GREEN)
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             macro_channel = get_path(wd, 'g4run/g4run_%s.mac' % channel)
@@ -519,7 +519,7 @@ def acqu(amount, sim_log):
     wd = os.getcwd()
     os.chdir(acqu_user)
     with open(get_path(DATA_OUTPUT_PATH, 'acqu.log'), 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             print_color('Processing channel %s' % format_channel(channel, False), GREEN)
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             for i in range(number+1, number+1+files):
@@ -546,7 +546,7 @@ def goat(amount, sim_log):
     wd = os.getcwd()
     os.chdir(os.path.expanduser(GOAT_PATH))
     with open(get_path(DATA_OUTPUT_PATH, 'goat.log'), 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             print_color('Processing channel %s' % format_channel(channel, False), GREEN)
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             for i in range(number+1, number+1+files):
@@ -573,7 +573,7 @@ def hadd(amount, sim_log):
     wd = os.getcwd()
     os.chdir(os.path.expanduser(DATA_OUTPUT_PATH))
     with open('hadd.log', 'w') as log:
-        for index, (channel, files, events, number) in enumerate(amount, start = 1):
+        for index, (channel, files, events, number) in enumerate(amount, start=1):
             print_color('Processing channel %s' % format_channel(channel, False), GREEN)
             sim_log.write('\n' + timestamp() + 'Processing channel %s\n' % format_channel(channel, False))
             for i in range(number+1, number+1+files):
@@ -744,10 +744,10 @@ def main():
         print(" %d hours" % hours)
     if hours > 24:
         print(' Finished approximately:  ' +
-                (datetime.datetime.now() + datetime.timedelta(hours = hours)).strftime("%A, %e. %B %Y %k:%M %Z"))
+                (datetime.datetime.now() + datetime.timedelta(hours=hours)).strftime("%A, %e. %B %Y %k:%M %Z"))
     elif hours > 12:
         print(' Finished approximately:  ' +
-                (datetime.datetime.now() + datetime.timedelta(hours = hours)).strftime("%e. %B %Y %k:%M %Z"))
+                (datetime.datetime.now() + datetime.timedelta(hours=hours)).strftime("%e. %B %Y %k:%M %Z"))
 
     input("\nStart the whole simulation process by hitting enter. ")
 

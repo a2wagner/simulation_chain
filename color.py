@@ -32,14 +32,14 @@ COLORS = {
 }
 
 def color_string(string, color):
-    format = ''
+    fmt = ''
     if color in COLORS:
-        format = COLOR_SEQ % (30 + COLORS[color]) + string + RESET_SEQ
+        fmt = COLOR_SEQ % (30 + COLORS[color]) + string + RESET_SEQ
     elif color in range(8):
-        format = COLOR_SEQ % (30 + color) + string + RESET_SEQ
+        fmt = COLOR_SEQ % (30 + color) + string + RESET_SEQ
     else:
-        format = string
-    return format
+        fmt = string
+    return fmt
 
 def bold_string(string):
     return BOLD_SEQ + string + RESET_SEQ
@@ -67,7 +67,7 @@ class ColoredFormatter(logging.Formatter):
         message   = message.replace("$RESET", RESET_SEQ)\
                            .replace("$BOLD",  BOLD_SEQ)\
                            .replace("$COLOR", color)
-        for k,v in COLORS.items():
+        for k, v in COLORS.items():
             message = message.replace("$" + k,    COLOR_SEQ % (v+30))\
                              .replace("$BG" + k,  COLOR_SEQ % (v+40))\
                              .replace("$BG-" + k, COLOR_SEQ % (v+40))

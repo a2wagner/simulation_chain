@@ -202,7 +202,7 @@ def input_int(message):
 
     if not n.isdigit():
         print_error("[ERROR] Invalid input! Please make sure to enter only numbers.")
-        sys.exit(1)
+        raise ValueError('Invalid input submitted')
 
     return int(n)
 
@@ -222,8 +222,7 @@ def get_path(path, file):
 
 def replace_all(file, search_exp, replace_exp, number_replacements=0):
     if number_replacements < 0:
-        logger.error('Negative number of replacements submitted')
-        sys.exit(number_replacements)
+        raise ValueError('Negative number of replacements submitted')
 
     if number_replacements:
         counter = 0
@@ -702,7 +701,7 @@ def main():
     pluto_files = list(set(sim_files) - set(mkin_files))
 
     if list_files:
-        list_file_amount() 
+        list_file_amount()
         sys.exit(0)
 
     if RECONSTRUCT:

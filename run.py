@@ -741,12 +741,13 @@ def main():
         print(" less than an hour")
     else:
         print(" %d hours" % hours)
+    time_format = '%e. %B %Y %k:%M %Z'
+    # add name of the day if simulation takes longer than 24 hours
     if hours > 24:
-        print(' Finished approximately:  ' +
-                (datetime.datetime.now() + datetime.timedelta(hours=hours)).strftime("%A, %e. %B %Y %k:%M %Z"))
-    elif hours > 12:
-        print(' Finished approximately:  ' +
-                (datetime.datetime.now() + datetime.timedelta(hours=hours)).strftime("%e. %B %Y %k:%M %Z"))
+        time_format = '%A, ' + time_format
+    # show finish time if simulation takes longer than 12 hours
+    if hours > 12:
+        print(' Finished approximately:  ' + (datetime.datetime.now() + datetime.timedelta(hours=hours)).strftime(time_format))
 
     input("\nStart the whole simulation process by hitting enter. ")
 
@@ -778,9 +779,10 @@ def main():
 
     os.remove(current_file)
 
+    time_format = time_format.replace('%k:%M', '%k:%M:%S')  # add seconds to the time format
     print('Simulation for %d channels done (total %s events)' % (len(amount), unit_prefix(total_events)))
-    print('Start time: ' + start_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
-    print('Stop time:  ' + end_date.strftime("%A, %e. %B %Y %k:%M:%S %Z"))
+    print('Start time: ' + start_date.strftime(time_format))
+    print('Stop time:  ' + end_date.strftime(time_format))
     print('Elapsed:    %d s (%s)' % (round(delta.total_seconds()), str(delta).split('.')[0]))
     #print('Elapsed:    %d s (%d days, %d hours and %d minutes)' % (round(delta.total_seconds()), delta.days, delta.seconds/3600, delta.seconds%3600/60)
     print_color('\n - - - F I N I S H E D - - -\n', BLUE)

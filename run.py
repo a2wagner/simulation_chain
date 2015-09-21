@@ -327,6 +327,24 @@ def check_paths():
     elif not check_file(A2_GEANT_PATH, 'A2'):
         print("        A2 Geant4 executable not found in '%s'." % A2_GEANT_PATH)
         return False
+    # check target length in A2 Geant4 DetectorSetup.mac
+    if SMEAR_Z_VERTEX:
+        geant_macros = get_path(A2_GEANT_PATH, 'macros')
+        if not check_file(geant_macros, 'DetectorSetup.mac'):
+            print("        No 'DetectorSetup.mac' macro found in the Geant macros directory.")
+            return False
+        target_length = ''
+        with open(get_path(geant_macros, 'DetectorSetup.mac'), 'r') as mac:
+            for line in mac:
+                if '/A2/det/setTargetLength' in line:
+                    target_length = line.split()[1]
+        if float(target_length) < Z_VERTEX_SMEARING:
+            print_color("[WARNING] The target length specified in the 'DetectorSetup.mac' macro", RED)
+            print_color('          in your Geant macros directory is smaller than your specified', RED)
+            print_color('          z vertex smearing. Geant will correct the z vertex in order to', RED)
+            print_color('          fit into the target length of %s cm. Modify the target length' % target_length, RED)
+            print_color('          if you want to use the vertex smearing of %.2f cm' % Z_VERTEX_SMEARING, RED)
+            print()
 
     # needed to modify global variables within this function
     global pluto_data, geant_data, acqu_user, acqu_bin, acqu_data, goat_bin, goat_data, merged_data
@@ -715,18 +733,14 @@ def main():
 
     if RECONSTRUCT:
         print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
-        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', RED)
-        print_color('           AcquRoot analysis config file which exits AcquRoot', RED)
-        print_color("           like the 'FinishMacro.C' provided within this repo", RED)
+        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', YELLOW)
+        print_color('           AcquRoot analysis config file which exits AcquRoot', YELLOW)
+        print_color("           like the 'FinishMacro.C' provided within this repo", YELLOW)
         print()
 
     if SMEAR_Z_VERTEX:
         print_color('NOTE: Z vertex smearing is enabled. Z vertex position will be', BLUE)
         print_color('      smeared within a target length of %.2f cm' % Z_VERTEX_SMEARING, BLUE)
-        if Z_VERTEX_SMEARING > 5:
-            print_color('IMPORTANT: Please check your DetectorSetup.mac macro in the Geant', RED)
-            print_color('           macros folder. By default the target length there in', RED)
-            print_color("           the line '/A2/det/setTargetLength' is set to 5 cm", RED)
     if SMEAR_BEAM_POSITION:
         print_color('NOTE: Beam smearing is enabled. X and Y vertex position will be', BLUE)
         print_color('      smeared within a beam spot diameter of %.2f cm' % BEAM_SMEARING, BLUE)

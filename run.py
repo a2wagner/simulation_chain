@@ -36,6 +36,11 @@ GOAT_BUILD = "~/git/a2GoAT/build"
 GOAT_CONFIG = "configfiles/GoAT-Convert.dat"  # relative path to GOAT_PATH
 GOAT_DATA = "goat"  # relative path to DATA_OUTPUT_PATH where the GoAT sorted data should be stored
 MERGED_DATA = "merged"  # relative path to DATA_OUTPUT_PATH where the merged data (Goat + Pluto + Geant) should be stored
+# optional settings for smearing generated Pluto data
+SMEAR_Z_VERTEX = True
+Z_VERTEX_SMEARING = 10  # unit in cm
+SMEAR_BEAM_POSITION = True
+BEAM_SMEARING = 2  # diameter for beam smearing, unit in cm
 
 # End of user changes
 
@@ -459,6 +464,14 @@ def mkin_conversion(amount, sim_log):
     print_color('\nConversion of the %d Pluto-generated files\n' % n_files, RED)
     sim_log.write('\n' + timestamp() + 'Conversion of the %d Pluto-generated files\n' % n_files)
     cmd = get_path(A2_GEANT_PATH, 'pluto2mkin')
+    ''' The vertex position can be smeared according to the target length (z vertex)
+        and the beam diameter (x and y vertices)
+        The z smearing is uniform, x and y are gaussian shaped. The values can be changed
+        in the top section of the file. '''
+    if SMEAR_Z_VERTEX:
+        cmd += ' --target length=%f' % Z_VERTEX_SMEARING
+    if SMEAR_BEAM_POSITION:
+        cmd += '  --beam diam=%f' % BEAM_SMEARING
     with open(get_path(DATA_OUTPUT_PATH, 'mkin.log'), 'w') as log:
         for index, (channel, files, events, number) in enumerate(amount, start=1):
             for i in range(number+1, number+1+files):
@@ -466,10 +479,6 @@ def mkin_conversion(amount, sim_log):
                 current += "Converting files for Geant, channel %s (%d/%d), file %02d (%d/%d)" % (channel, index, len(amount), i, i-number, files)
                 write_current_info(current)
                 run(cmd + " --input %s/sim_%s_%02d.root" % (pluto_data, channel, i), log, True)  # mkin converter prints warning because of missing dictionary for PParticle to stderr
-                ''' The vertex position can be smeared according to the target length (z vertex)
-                    and the beam diameter (x and y vertices)
-                    The z smearing is uniform, x and y are gaussian shaped. The example below is
-                    for a 10cm target with 2cm beam diameter. Change values accordingly. '''
                 #run(cmd + " --input %s/%s_%02d.root --target length=10 --beam diam=2" % (pluto_data, channel, i), log)
                 # move the mkin file to the pluto simulation data directory
                 move('%s/sim_%s_%02d_mkin.root' % (os.getcwd(), channel, i), '%s/sim_%s_%02d_mkin.root' % (pluto_data, channel, i))
@@ -706,9 +715,22 @@ def main():
 
     if RECONSTRUCT:
         print_color('NOTE: Reconstruction is enabled, GoAT files will be produced', BLUE)
-        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', BLUE)
-        print_color('           AcquRoot analysis config file which exits AcquRoot', BLUE)
-        print_color("           like the 'FinishMacro.C' provided within this repo", BLUE)
+        print_color('IMPORTANT: Please make sure you enabled a FinishMacro in your', RED)
+        print_color('           AcquRoot analysis config file which exits AcquRoot', RED)
+        print_color("           like the 'FinishMacro.C' provided within this repo", RED)
+        print()
+
+    if SMEAR_Z_VERTEX:
+        print_color('NOTE: Z vertex smearing is enabled. Z vertex position will be', BLUE)
+        print_color('      smeared within a target length of %.2f cm' % Z_VERTEX_SMEARING, BLUE)
+        if Z_VERTEX_SMEARING > 5:
+            print_color('IMPORTANT: Please check your DetectorSetup.mac macro in the Geant', RED)
+            print_color('           macros folder. By default the target length there in', RED)
+            print_color("           the line '/A2/det/setTargetLength' is set to 5 cm", RED)
+    if SMEAR_BEAM_POSITION:
+        print_color('NOTE: Beam smearing is enabled. X and Y vertex position will be', BLUE)
+        print_color('      smeared within a beam spot diameter of %.2f cm' % BEAM_SMEARING, BLUE)
+    if SMEAR_Z_VERTEX or SMEAR_BEAM_POSITION:
         print()
 
     amount = []

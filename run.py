@@ -299,7 +299,7 @@ def check_simulation_files(channel):
 
     return maximum
 
-def list_file_amount():
+def list_file_amount(events=False):
     print('Amount of simulated files per channel:')
     for channel in channels:
         pluto_channel = [f for f in pluto_files if channel in f]
@@ -310,7 +310,25 @@ def list_file_amount():
         max_geant = max_file_number(geant_channel)
         maximum = max(max_pluto, max_mkin, max_geant)
         if maximum > 0:
-            print(' {0:<20s} -- {1:>3d} files'.format(format_channel(channel), maximum))
+            if not events:
+                print(' {0:<20s} -- {1:>3d} files'.format(format_channel(channel), maximum))
+            # assume every file contains the same amount of events, pick mkin files for event numbers
+            else:
+                sum = 0
+                from ROOT import TFile, TTree, TH1
+                for f in mkin_channel:
+                    filename = get_path(pluto_data, f)
+                    current = TFile(filename)
+                    if not current.IsOpen():
+                        print_error("The file '%s' could not be opened" % filename)
+                        continue
+                    elif not current.GetListOfKeys().GetSize():
+                        print_error("Found no directory in file '%s'" % current.GetName())
+                        continue
+                    name = current.GetListOfKeys().First().GetName()
+                    tree = current.Get(name)
+                    sum += tree.GetEntriesFast()
+                print(' {0:<20s} -- {1:>3d} files,  total {2:>8s} events'.format(format_channel(channel), maximum, unit_prefix(sum)))
 
 # check if all the needed path and files exist
 def check_paths():
@@ -701,9 +719,13 @@ def main():
     # check command line arguments for channel configuration file
     channel_config = None
     list_files = False
+    list_events = False
     if len(sys.argv) == 2:
-        if '--list' in sys.argv:
-            list_files = True
+        if sys.argv[1].startswith('--list'):
+            if 'all' in sys.argv[1]:
+                list_events = True
+            else:
+                list_files = True
         else:
             file = sys.argv[1]
             if not check_file('.', file):
@@ -729,6 +751,10 @@ def main():
 
     if list_files:
         list_file_amount()
+        sys.exit(0)
+
+    if list_events:
+        list_file_amount(events=True)
         sys.exit(0)
 
     if RECONSTRUCT:

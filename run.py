@@ -300,7 +300,7 @@ def check_simulation_files(channel):
     return maximum
 
 def list_file_amount(events=False):
-    print('Amount of simulated files per channel:')
+    print('Amount of simulated %s per channel:' % ('events' if events else 'files'))
     for channel in channels:
         pluto_channel = [f for f in pluto_files if channel in f]
         mkin_channel = [f for f in mkin_files if channel in f]

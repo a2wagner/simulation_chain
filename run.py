@@ -214,13 +214,13 @@ def input_int(message):
 def max_file_number(lst):
     if not lst:
         return 0
-    lst.sort()
     n = re.compile(r'^.+_(\d+)(_mkin)?\..*$')
-    match = n.search(lst[-1])
-    if match is not None:
-        return int(match.group(1))
-    else:
+    nrs = [int(n.search(l).group(1)) for l in lst if n.search(l) is not None]
+    nrs.sort()
+    if not nrs:
         return 0
+    else:
+        return nrs[-1]
 
 def get_path(path, file):
     return os.path.expanduser(pjoin(path, file))
